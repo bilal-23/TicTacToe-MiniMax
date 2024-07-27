@@ -8,11 +8,22 @@ class TicTacToe {
   currentPlayer: "X" | "O";
   gridSize: number;
   winningCombinations: string[][] = [];
+  availableCells: string[] = [];
   winner: string | null = null;
+  scores = {
+    X: 1,
+    O: -1,
+    Draw: 0,
+  };
+  aiPlayer: "X" | "O";
+  userPlayer: "X" | "O";
 
   constructor(gridSize: number, currentPlayer: "X" | "O") {
     this.gridSize = gridSize;
-    this.currentPlayer = currentPlayer;
+    this.aiPlayer = currentPlayer === "X" ? "O" : "X";
+    this.userPlayer = currentPlayer === "X" ? "X" : "O";
+    this.currentPlayer =
+      this.userPlayer === "X" ? this.userPlayer : this.aiPlayer;
     this.init();
   }
 
@@ -22,6 +33,10 @@ class TicTacToe {
     this.generateWinningCombinations();
     this.renderBoard();
     this.addEventListenerToBoard();
+
+    if (this.currentPlayer === this.aiPlayer) {
+      this.nextTurn(); // AI makes the first move if it is the starting player
+    }
   }
 
   // Generate all possible winning combinations
@@ -44,6 +59,22 @@ class TicTacToe {
       (_, i) => `${i}${this.gridSize - 1 - i}`
     );
     this.winningCombinations.push(diagonal1, diagonal2);
+  }
+
+  getWinner() {
+    for (const combination of this.winningCombinations) {
+      const values = combination.map((pos) => this.board.get(pos));
+      if (values.every((val) => val === "X")) {
+        return "X";
+      }
+      if (values.every((val) => val === "O")) {
+        return "O";
+      }
+    }
+    if (Array.from(this.board.values()).every((val) => val !== null)) {
+      return "Draw";
+    }
+    return null;
   }
 
   // Check if there is a winner or if the game is a draw
@@ -73,6 +104,74 @@ class TicTacToe {
     });
   }
 
+  minimax(
+    board: Map<string, string | null>,
+    depth: number,
+    isMaximizing: boolean
+  ): number {
+    const winner = this.getWinner();
+    if (winner !== null) {
+      return this.scores[winner];
+    }
+
+    if (depth === 0) return this.scores["Draw"];
+
+    const availableCells = this.getAvailableCells(board);
+
+    if (isMaximizing) {
+      let bestScore = Number.NEGATIVE_INFINITY;
+      for (const cell of availableCells) {
+        board.set(cell, this.aiPlayer);
+        let score = this.minimax(board, depth - 1, false);
+        board.set(cell, null);
+        bestScore = Math.max(bestScore, score);
+      }
+      return bestScore;
+    } else {
+      let bestScore = Number.POSITIVE_INFINITY;
+      for (const cell of availableCells) {
+        board.set(cell, this.userPlayer);
+        let score = this.minimax(board, depth - 1, true);
+        board.set(cell, null);
+        bestScore = Math.min(bestScore, score);
+      }
+      return bestScore;
+    }
+  }
+
+  getAvailableCells(board: Map<string, string | null>): string[] {
+    const available = [];
+    for (const [key, value] of board) {
+      if (value === null) {
+        available.push(key);
+      }
+    }
+    return available;
+  }
+
+  getBestMove() {
+    let bestScore = Number.NEGATIVE_INFINITY;
+    let bestMove = "";
+    for (const cell of this.getAvailableCells(this.board)) {
+      this.board.set(cell, this.aiPlayer);
+      let score = this.minimax(this.board, 9, false);
+      this.board.set(cell, null);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = cell;
+      }
+    }
+    return bestMove;
+  }
+
+  nextTurn() {
+    // If it's the AI's turn
+    if (this.currentPlayer === this.aiPlayer) {
+      const bestMove = this.getBestMove();
+      this.makeMove(bestMove);
+    }
+  }
+
   // Attach event listener to the board
   addEventListenerToBoard() {
     this.boardElement.addEventListener("click", (e) => {
@@ -89,15 +188,21 @@ class TicTacToe {
   // Make a move on the board
   makeMove(position: string) {
     if (this.board.get(position)) return;
+
     this.board.set(position, this.currentPlayer);
+    this.availableCells.splice(this.availableCells.indexOf(position), 1);
     this.markCell(position);
+
+    // Check Winner
     const winner = this.checkWinner();
     if (winner) {
       this.winner = winner;
       this.renderWinner(winner);
       this.boardElement.style.pointerEvents = "none";
     } else {
-      this.currentPlayer = this.currentPlayer === "X" ? "O" : "X";
+      this.currentPlayer =
+        this.currentPlayer === this.aiPlayer ? this.userPlayer : this.aiPlayer;
+      this.nextTurn();
     }
   }
 
@@ -110,11 +215,14 @@ class TicTacToe {
   // Create the board structure
   createBoard() {
     this.board.clear();
-    Array.from({ length: this.gridSize }, (_, i) => {
-      Array.from({ length: this.gridSize }, (_, j) => {
-        this.board.set(`${i}${j}`, null);
-      });
-    });
+    this.availableCells.length = 0;
+    for (let i = 0; i < this.gridSize; i++) {
+      for (let j = 0; j < this.gridSize; j++) {
+        const cell = `${i}${j}`;
+        this.board.set(cell, null);
+        this.availableCells.push(cell);
+      }
+    }
   }
 
   // Render the board on the web page
@@ -146,9 +254,14 @@ class TicTacToe {
     this.createBoard();
     this.resetBoard();
     this.winner = null;
-    this.currentPlayer = "X";
+    this.currentPlayer =
+      this.userPlayer === "X" ? this.userPlayer : this.aiPlayer;
     const winnerElement = document.querySelector(".winner");
     if (winnerElement) winnerElement.remove();
+
+    if (this.currentPlayer === this.aiPlayer) {
+      this.nextTurn(); // AI makes the first move if it is the starting player
+    }
   }
 
   // Render the winner message and play again button
@@ -170,4 +283,4 @@ class TicTacToe {
 }
 
 // Initialize the game with a 3x3 grid and player X starting
-new TicTacToe(3, "X");
+new TicTacToe(3, "O");
