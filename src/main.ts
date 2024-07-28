@@ -24,6 +24,8 @@ class TicTacToe {
     this.userPlayer = currentPlayer === "X" ? "X" : "O";
     this.currentPlayer =
       this.userPlayer === "X" ? this.userPlayer : this.aiPlayer;
+    this.scores[this.aiPlayer] = 1;
+    this.scores[this.userPlayer] = -1;
     this.init();
   }
 
@@ -113,7 +115,6 @@ class TicTacToe {
     if (winner !== null) {
       return this.scores[winner];
     }
-
     if (depth === 0) return this.scores["Draw"];
 
     const availableCells = this.getAvailableCells(board);
@@ -152,7 +153,9 @@ class TicTacToe {
   getBestMove() {
     let bestScore = Number.NEGATIVE_INFINITY;
     let bestMove = "";
-    for (const cell of this.getAvailableCells(this.board)) {
+    const availableCells = this.getAvailableCells(this.board);
+
+    for (const cell of availableCells) {
       this.board.set(cell, this.aiPlayer);
       let score = this.minimax(this.board, 9, false);
       this.board.set(cell, null);
@@ -283,4 +286,4 @@ class TicTacToe {
 }
 
 // Initialize the game with a 3x3 grid and player X starting
-new TicTacToe(3, "O");
+new TicTacToe(3, "X");
