@@ -275,9 +275,7 @@ class TicTacToe {
 
 class Game {
   app = document.getElementById("app")!;
-  constructor() {
-    this.renderHomeScreen();
-  }
+
   renderHomeScreen() {
     const div = document.createElement("div");
     div.classList.add("home-screen");
@@ -303,4 +301,4 @@ class Game {
 }
 
 const game = new Game();
-// game.start();
+game.renderHomeScreen();
