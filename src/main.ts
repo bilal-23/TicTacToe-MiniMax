@@ -96,6 +96,8 @@ class TicTacToe {
   minimax(
     board: Map<string, string | null>,
     depth: number,
+    alpha: number,
+    beta: number,
     isMaximizing: boolean
   ): number {
     const winner = this.getWinner();
@@ -108,18 +110,22 @@ class TicTacToe {
       let bestScore = Number.NEGATIVE_INFINITY;
       for (const cell of availableCells) {
         board.set(cell, this.aiPlayer);
-        let score = this.minimax(board, depth - 1, false);
+        let score = this.minimax(board, depth - 1, alpha, beta, false);
         board.set(cell, null);
         bestScore = Math.max(bestScore, score);
+        alpha = Math.max(alpha, score);
+        if (alpha >= beta) break;
       }
       return bestScore;
     } else {
       let bestScore = Number.POSITIVE_INFINITY;
       for (const cell of availableCells) {
         board.set(cell, this.userPlayer);
-        let score = this.minimax(board, depth - 1, true);
+        let score = this.minimax(board, depth - 1, alpha, beta, true);
         board.set(cell, null);
         bestScore = Math.min(bestScore, score);
+        beta = Math.min(beta, score);
+        if (alpha >= beta) break;
       }
       return bestScore;
     }
@@ -136,7 +142,13 @@ class TicTacToe {
 
     for (const cell of availableCells) {
       this.board.set(cell, this.aiPlayer);
-      const score = this.minimax(this.board, 9, false);
+      const score = this.minimax(
+        this.board,
+        9,
+        Number.NEGATIVE_INFINITY,
+        Number.POSITIVE_INFINITY,
+        false
+      );
       this.board.set(cell, null);
       if (score > bestScore) {
         bestScore = score;
